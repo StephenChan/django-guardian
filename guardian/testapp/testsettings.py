@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import random
 import string
 import environ
@@ -70,3 +71,24 @@ TEMPLATES = [
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REPO_DIR = Path(__file__).resolve().parent.parent.parent
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'database': {
+            'filename': REPO_DIR / 'database.log',
+            'class': 'logging.FileHandler',
+            'level': 'DEBUG',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['database'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}

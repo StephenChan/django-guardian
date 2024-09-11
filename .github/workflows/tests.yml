@@ -10,37 +10,16 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        django: ["3.2", "4.1", "4.2", "5.0", "main"]
-        exclude:
-          - python-version: "3.12"
-            django: "4.2" # Python 3.12 is supported since Django 4.2.8.
-          - python-version: "3.12"
-            django: "4.1"
-          - python-version: "3.12"
-            django: "3.2"
-          - python-version: "3.11"
-            django: "3.2"
-          - python-version: "3.9"
-            django: 5.0
-          - python-version: "3.9"
-            django: main
-          - python-version: "3.8"
-            django: 5.0
-          - python-version: "3.8"
-            django: main
+        python-version: ["3.12"]
+        django: ["5.0"]
+        os: ["ubuntu-22.04", "ubuntu-24.04"]
+
+    runs-on: ${{ matrix.os }}
 
     services:
-      mariadb:
-        image: mariadb:11.4.2
-        env:
-          MYSQL_ROOT_PASSWORD: mariadb
-        ports:
-          - 3306:3306
       postgres:
         image: postgres:16.3
         env:
@@ -54,9 +33,9 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install latest pip, setuptools, and wheel
@@ -64,7 +43,7 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
       - name: Install dependencies
         run: |
-          PACKAGES=('mock' 'pytest' 'pytest-django' 'pytest-cov' 'django-environ' 'setuptools_scm' 'pyupgrade' 'psycopg2-binary' 'mysqlclient')
+          PACKAGES=('mock' 'pytest' 'pytest-django' 'pytest-cov' 'django-environ' 'setuptools_scm' 'pyupgrade' 'psycopg2-binary')
           if [[ "${{ matrix.django }}" == 'main' ]]; then
               PACKAGES+=('https://github.com/django/django/archive/main.tar.gz');
           else
@@ -73,9 +52,6 @@ jobs:
 
           PGPASSWORD="postgres" psql -c 'create database django_guardian;' -h localhost -U postgres;
           PGPASSWORD="postgres" psql -c 'create database test_django_guardian;' -h localhost -U postgres;
-
-          mysql --host=127.0.0.1 --user=root --password=mariadb -e 'CREATE DATABASE django_guardian;';
-          mysql --host=127.0.0.1 --user=root --password=mariadb -e 'CREATE DATABASE test_django_guardian;';
 
           python -m pip install --upgrade --upgrade-strategy=only-if-needed ${PACKAGES[*]};
       - name: Ensure no version conflicts exist
@@ -87,38 +63,5 @@ jobs:
         run: |
           export DATABASE_URL=postgres://postgres:postgres@localhost/django_guardian
           python ./setup.py --version
-          py.test --cov=guardian
-
-      - name: Code tests (with MariaDB)
-        run: |
-          export DATABASE_URL=mysql://root:mariadb@127.0.0.1:3306/django_guardian
-          python ./setup.py --version
-          py.test --cov=guardian
-
-      - name: Code tests (with SQLite)
-        run: |
-          export DATABASE_URL=sqlite://
-          python ./setup.py --version
-          py.test --cov=guardian
-
-      - name: Test example_project
-        run: |
-          pip install .;
-          cd example_project;
-          DJANGO_VERSION="${{ matrix.django }}"
-          EXAMPLE_PROJECTS_DJANGO_VERSION=$(grep -i "django[^-]" requirements.txt | cut -d "=" -f 2)
-          if [ "${DJANGO_VERSION:0:3}" = "${EXAMPLE_PROJECTS_DJANGO_VERSION:0:3}" ]; then
-              python -Wa manage.py makemigrations --check --dry-run;
-          elif [ -z "${EXAMPLE_PROJECTS_DJANGO_VERSION}" ]; then
-              echo "Could not determine which version of Django the example project supports."
-              exit 1
-          fi;
-
-          export DATABASE_URL=postgres://postgres:postgres@localhost/django_guardian
-          python -Wa manage.py test;
-
-          export DATABASE_URL=mysql://root:mariadb@127.0.0.1:3306/django_guardian
-          python -Wa manage.py test;
-
-          export DATABASE_URL=sqlite://
-          python -Wa manage.py test;
+          py.test guardian/testapp/tests/test_mixins.py::TestViewMixins::test_list_permission --cov=guardian
+          cat database.log
