@@ -13,6 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        syntax-dummy: "syntax-dummy"
         include:
           - os: "ubuntu-22.04"
             setup-python-action: "v2"
