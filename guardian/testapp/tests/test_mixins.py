@@ -199,13 +199,20 @@ class TestViewMixins(TestCase):
         self.assertEqual(response.content, b'secret-view')
 
     def test_list_permission(self):
+        from django.db import connection
+
         request = self.factory.get('/some-secret-list/')
         request.user = AnonymousUser()
 
         view = PostPermissionListView.as_view()
 
         response = view(request)
+        # No DB queries will be logged during tests (outside of migrations)
+        # unless we set this.
+        connection.force_debug_cursor = True
+        # Interested in the query that runs during this line in particular.
         self.assertNotContains(response, b'foo-post-title')
+        connection.force_debug_cursor = False
 
         request.user = self.user
         request.user.add_obj_perm('change_post', self.post)

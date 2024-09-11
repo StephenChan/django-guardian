@@ -65,3 +65,4 @@ jobs:
           export DATABASE_URL=postgres://postgres:postgres@localhost/django_guardian
           python ./setup.py --version
           py.test guardian/testapp/tests/test_mixins.py::TestViewMixins::test_list_permission --cov=guardian
+          cat database.log
