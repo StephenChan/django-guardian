@@ -17,7 +17,9 @@ jobs:
         django: ["5.0"]
         include:
           - os: "ubuntu-22.04"
+            setup-python-action: "v2"
           - os: "ubuntu-24.04"
+            setup-python-action: "v5"
 
     runs-on: ${{ matrix.os }}
 
