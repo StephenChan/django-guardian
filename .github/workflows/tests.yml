@@ -17,9 +17,9 @@ jobs:
         django: ["5.0"]
         include:
           - os: "ubuntu-22.04"
-            setup-python-action: "v2"
+            setup-python-action: "actions/setup-python@v2"
           - os: "ubuntu-24.04"
-            setup-python-action: "v5"
+            setup-python-action: "actions/setup-python@v5"
 
     runs-on: ${{ matrix.os }}
 
@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: ${{ matrix.setup-python-action }}
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install latest pip, setuptools, and wheel
